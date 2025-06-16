@@ -1,0 +1,55 @@
+/* Font loading optimization */
+@font-face {
+  font-family: "Gotham";
+  src: url("https://db.onlinewebfonts.com/t/f394894fe9d2c0473c80ab24dd9bcda5.woff2")format("woff2");
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+  
+  body {
+    overflow-x: hidden;
+    position: relative;
+    width: 100%;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Gotham', sans-serif;
+    font-weight: bold;
+  }
+}
+
+/* Add loading animation */
+.loading-spinner {
+  @apply animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0046be];
+}
+
+/* Add image loading skeleton */
+.image-skeleton {
+  @apply bg-gray-200 animate-pulse rounded-lg;
+}
+
+/* Prevent horizontal scroll on mobile */
+#root {
+  overflow-x: hidden;
+  position: relative;
+  width: 100%;
+}
+
+/* Fix container padding on small screens */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
