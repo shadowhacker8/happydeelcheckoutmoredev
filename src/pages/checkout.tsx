@@ -3,8 +3,20 @@ import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { getCartItem, clearCart } from '../utils/cart';
-import { ArrowLeft, Check, CreditCard, MapPin } from 'lucide-react';
+import { ArrowLeft, Check, CreditCard, MapPin, ChevronDown } from 'lucide-react';
 import type { CartItem } from '../utils/cart';
+
+interface AddressSuggestion {
+  place_id: string;
+  display_name: string;
+  address: {
+    house_number?: string;
+    road?: string;
+    city?: string;
+    state?: string;
+    postcode?: string;
+  };
+}
 
 const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -13,8 +25,12 @@ const CheckoutPage: React.FC = () => {
   const [shippingData, setShippingData] = useState({
     streetAddress: '',
     city: '',
-    zipCode: ''
+    zipCode: '',
+    state: ''
   });
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [showAddressConfirmation, setShowAddressConfirmation] = useState(false);
 
   useEffect(() => {
@@ -26,15 +42,53 @@ const CheckoutPage: React.FC = () => {
     setCartItem(item);
   }, [navigate]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const fetchAddressSuggestions = async (query: string) => {
+    if (query.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    setIsLoadingAddresses(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=us,ca&q=${encodeURIComponent(query)}`
+      );
+      const data = await response.json();
+      setAddressSuggestions(data);
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      setAddressSuggestions([]);
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  };
+
+  const handleAddressSelect = (suggestion: AddressSuggestion) => {
+    const { address } = suggestion;
+    setShippingData({
+      streetAddress: `${address.house_number || ''} ${address.road || ''}`.trim(),
+      city: address.city || '',
+      zipCode: address.postcode || '',
+      state: address.state || ''
+    });
+    setShowSuggestions(false);
+    setAddressSuggestions([]);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setShippingData(prev => ({ ...prev, [name]: value }));
+
+    if (name === 'streetAddress') {
+      fetchAddressSuggestions(value);
+      setShowSuggestions(value.length >= 3);
+    }
   };
 
   const handleContinueToCheckout = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!shippingData.streetAddress || !shippingData.city || !shippingData.zipCode) {
+    if (!shippingData.streetAddress || !shippingData.city || !shippingData.zipCode || !shippingData.state) {
       alert('Please fill in all shipping address fields');
       return;
     }
@@ -42,13 +96,30 @@ const CheckoutPage: React.FC = () => {
     setShowAddressConfirmation(true);
     setTimeout(() => {
       setCurrentStep('payment');
-    }, 1500);
+      setShowAddressConfirmation(false);
+    }, 2000);
   };
 
   const handleClearCart = () => {
     clearCart();
     navigate('/', { replace: true });
   };
+
+  const usStates = [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware',
+    'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky',
+    'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi',
+    'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico',
+    'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania',
+    'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+    'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+  ];
+
+  const canadianProvinces = [
+    'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador',
+    'Northwest Territories', 'Nova Scotia', 'Nunavut', 'Ontario', 'Prince Edward Island',
+    'Quebec', 'Saskatchewan', 'Yukon'
+  ];
 
   if (!cartItem) {
     return (
@@ -74,38 +145,72 @@ const CheckoutPage: React.FC = () => {
       <Header />
       <main className="flex-grow py-8">
         <div className="container mx-auto px-4">
-          <Link to={`/product/${product.slug}`} className="inline-flex items-center text-[#0046be] hover:text-[#003494] mb-6">
+          <Link to={`/product/${product.slug}`} className="inline-flex items-center text-[#0046be] hover:text-[#003494] mb-8">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Product
           </Link>
 
-          {/* Progress Indicator */}
-          <div className="mb-8">
-            <div className="flex items-center justify-center space-x-8">
-              <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  currentStep === 'shipping' ? 'bg-[#0046be] text-white' : 
-                  currentStep === 'payment' ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+          {/* Enhanced Progress Indicator */}
+          <div className="mb-12">
+            <div className="flex items-center justify-center max-w-md mx-auto">
+              {/* Step 1 - Shipping */}
+              <div className="flex flex-col items-center">
+                <div className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+                  currentStep === 'shipping' 
+                    ? 'bg-[#0046be] text-white shadow-lg scale-110' 
+                    : currentStep === 'payment' 
+                    ? 'bg-[#ffef02] text-[#0046be] shadow-md' 
+                    : 'bg-gray-300 text-gray-600'
                 }`}>
-                  {currentStep === 'payment' ? <Check className="h-6 w-6" /> : <MapPin className="h-6 w-6" />}
+                  {currentStep === 'payment' ? (
+                    <Check className="h-6 w-6" />
+                  ) : (
+                    <MapPin className="h-6 w-6" />
+                  )}
+                  {currentStep === 'shipping' && (
+                    <div className="absolute inset-0 rounded-full bg-[#0046be] animate-ping opacity-25"></div>
+                  )}
                 </div>
-                <span className={`ml-3 font-medium ${
-                  currentStep === 'shipping' ? 'text-[#0046be]' : 
-                  currentStep === 'payment' ? 'text-green-500' : 'text-gray-600'
+                <span className={`mt-3 text-sm font-medium transition-colors duration-300 ${
+                  currentStep === 'shipping' 
+                    ? 'text-[#0046be]' 
+                    : currentStep === 'payment' 
+                    ? 'text-green-600' 
+                    : 'text-gray-600'
                 }`}>
                   Shipping Address
                 </span>
               </div>
               
-              <div className={`h-1 w-16 ${currentStep === 'payment' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              {/* Progress Line */}
+              <div className="flex-1 mx-6 relative">
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className={`h-full transition-all duration-1000 ease-out ${
+                    currentStep === 'payment' 
+                      ? 'w-full bg-gradient-to-r from-[#ffef02] to-[#0046be]' 
+                      : 'w-0 bg-[#0046be]'
+                  }`}></div>
+                </div>
+                {currentStep === 'payment' && (
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="w-3 h-3 bg-white rounded-full border-2 border-[#0046be] animate-pulse"></div>
+                  </div>
+                )}
+              </div>
               
-              <div className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  currentStep === 'payment' ? 'bg-[#0046be] text-white' : 'bg-gray-300 text-gray-600'
+              {/* Step 2 - Payment */}
+              <div className="flex flex-col items-center">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+                  currentStep === 'payment' 
+                    ? 'bg-[#0046be] text-white shadow-lg scale-110' 
+                    : 'bg-gray-300 text-gray-600'
                 }`}>
                   <CreditCard className="h-6 w-6" />
+                  {currentStep === 'payment' && (
+                    <div className="absolute inset-0 rounded-full bg-[#0046be] animate-ping opacity-25"></div>
+                  )}
                 </div>
-                <span className={`ml-3 font-medium ${
+                <span className={`mt-3 text-sm font-medium transition-colors duration-300 ${
                   currentStep === 'payment' ? 'text-[#0046be]' : 'text-gray-600'
                 }`}>
                   Payment
@@ -118,64 +223,72 @@ const CheckoutPage: React.FC = () => {
             /* Shipping Step - Two Column Layout */
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Section - Cart Information */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
+              <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-900 mb-8">Order Summary</h2>
                 
-                <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-start space-x-6 p-6 bg-gradient-to-r from-blue-50 to-yellow-50 rounded-xl border border-blue-100">
                   <img 
                     src={product.images[0]} 
                     alt={product.title}
-                    className="w-20 h-20 object-cover rounded-lg"
+                    className="w-24 h-24 object-cover rounded-xl shadow-sm"
                   />
                   <div className="flex-grow">
-                    <h3 className="font-medium text-gray-900 line-clamp-2">{product.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{product.condition}</p>
-                    <div className="flex items-center justify-between mt-3">
+                    <h3 className="font-semibold text-gray-900 line-clamp-2 text-lg">{product.title}</h3>
+                    <p className="text-sm text-gray-600 mt-2 bg-white px-3 py-1 rounded-full inline-block">{product.condition}</p>
+                    <div className="flex items-center justify-between mt-4">
                       <span className="text-sm text-gray-600">Quantity: {cartItem.quantity}</span>
-                      <span className="text-lg font-bold text-gray-900">${product.price.toFixed(2)}</span>
+                      <span className="text-2xl font-bold text-[#0046be]">${product.price.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 mt-6 pt-6">
-                  <div className="flex justify-between items-center mb-2">
+                <div className="border-t border-gray-200 mt-8 pt-8 space-y-4">
+                  <div className="flex justify-between items-center text-lg">
                     <span className="text-gray-600">Subtotal:</span>
-                    <span className="font-medium">${product.price.toFixed(2)}</span>
+                    <span className="font-semibold">${product.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
+                  <div className="flex justify-between items-center text-lg">
                     <span className="text-gray-600">Shipping:</span>
-                    <span className="font-medium text-green-600">FREE</span>
+                    <span className="font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full">FREE</span>
                   </div>
-                  <div className="flex justify-between items-center text-lg font-bold border-t border-gray-200 pt-4">
+                  <div className="flex justify-between items-center text-2xl font-bold border-t border-gray-200 pt-6">
                     <span>Total:</span>
-                    <span>${product.price.toFixed(2)}</span>
+                    <span className="text-[#0046be]">${product.price.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={handleClearCart}
-                  className="w-full mt-6 px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors duration-300"
+                  className="w-full mt-8 px-6 py-3 text-red-600 border-2 border-red-200 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all duration-300 font-medium"
                 >
                   Clear Cart
                 </button>
               </div>
 
               {/* Right Section - Shipping Form */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Shipping Address</h2>
+              <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-900 mb-8">Shipping Address</h2>
                 
                 {showAddressConfirmation ? (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Check className="h-8 w-8 text-green-600" />
+                  <div className="text-center py-12">
+                    <div className="w-20 h-20 bg-gradient-to-r from-[#ffef02] to-[#0046be] rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Check className="h-10 w-10 text-white" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Address Confirmed!</h3>
-                    <p className="text-gray-600">Proceeding to payment...</p>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-3">Address Confirmed!</h3>
+                    <p className="text-gray-600">Proceeding to secure payment...</p>
+                    <div className="mt-4">
+                      <div className="animate-pulse flex space-x-1 justify-center">
+                        <div className="w-2 h-2 bg-[#0046be] rounded-full"></div>
+                        <div className="w-2 h-2 bg-[#0046be] rounded-full animation-delay-200"></div>
+                        <div className="w-2 h-2 bg-[#0046be] rounded-full animation-delay-400"></div>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <form onSubmit={handleContinueToCheckout} className="space-y-6">
-                    <div>
-                      <label htmlFor="streetAddress" className="block text-sm font-medium text-gray-700 mb-2">
+                    {/* Street Address with Autocomplete */}
+                    <div className="relative">
+                      <label htmlFor="streetAddress" className="block text-sm font-semibold text-gray-700 mb-3">
                         Street Address *
                       </label>
                       <input
@@ -185,29 +298,88 @@ const CheckoutPage: React.FC = () => {
                         value={shippingData.streetAddress}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0046be] focus:border-transparent"
+                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0046be] focus:border-[#0046be] transition-all duration-300"
                         placeholder="123 Main Street"
+                        autoComplete="street-address"
                       />
+                      
+                      {/* Address Suggestions */}
+                      {showSuggestions && (
+                        <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                          {isLoadingAddresses ? (
+                            <div className="p-4 text-center text-gray-500">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0046be] mx-auto"></div>
+                              <span className="mt-2 block">Loading addresses...</span>
+                            </div>
+                          ) : addressSuggestions.length > 0 ? (
+                            addressSuggestions.map((suggestion) => (
+                              <button
+                                key={suggestion.place_id}
+                                type="button"
+                                onClick={() => handleAddressSelect(suggestion)}
+                                className="w-full text-left p-4 hover:bg-blue-50 border-b border-gray-100 last:border-b-0 transition-colors duration-200"
+                              >
+                                <div className="font-medium text-gray-900">{suggestion.display_name}</div>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-gray-500">No addresses found</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* City and State Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="city" className="block text-sm font-semibold text-gray-700 mb-3">
+                          City *
+                        </label>
+                        <input
+                          type="text"
+                          id="city"
+                          name="city"
+                          value={shippingData.city}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0046be] focus:border-[#0046be] transition-all duration-300"
+                          placeholder="New York"
+                          autoComplete="address-level2"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="state" className="block text-sm font-semibold text-gray-700 mb-3">
+                          State/Province *
+                        </label>
+                        <div className="relative">
+                          <select
+                            id="state"
+                            name="state"
+                            value={shippingData.state}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0046be] focus:border-[#0046be] transition-all duration-300 appearance-none bg-white"
+                          >
+                            <option value="">Select State/Province</option>
+                            <optgroup label="United States">
+                              {usStates.map(state => (
+                                <option key={state} value={state}>{state}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Canada">
+                              {canadianProvinces.map(province => (
+                                <option key={province} value={province}>{province}</option>
+                              ))}
+                            </optgroup>
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                        </div>
+                      </div>
                     </div>
 
                     <div>
-                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                        City *
-                      </label>
-                      <input
-                        type="text"
-                        id="city"
-                        name="city"
-                        value={shippingData.city}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0046be] focus:border-transparent"
-                        placeholder="New York"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="zipCode" className="block text-sm font-semibold text-gray-700 mb-3">
                         Zip Code *
                       </label>
                       <input
@@ -217,45 +389,54 @@ const CheckoutPage: React.FC = () => {
                         value={shippingData.zipCode}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0046be] focus:border-transparent"
+                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0046be] focus:border-[#0046be] transition-all duration-300"
                         placeholder="10001"
+                        autoComplete="postal-code"
                       />
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full bg-[#0046be] hover:bg-[#003494] text-white font-medium py-3 rounded-lg transition-colors duration-300"
+                      className="w-full bg-gradient-to-r from-[#0046be] to-[#003494] hover:from-[#003494] hover:to-[#002a6b] text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
                     >
-                      Continue to Checkout
+                      Continue to Payment
                     </button>
                   </form>
                 )}
               </div>
             </div>
           ) : (
-            /* Payment Step - Full Width Layout */
+            /* Payment Step - Streamlined Layout */
             <div className="max-w-4xl mx-auto">
-              {/* Shipping Address Summary - Compact */}
-              <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+              {/* Compact Shipping Summary */}
+              <div className="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-gray-100">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-900">Shipping to:</h3>
-                    <p className="text-sm text-gray-600">
-                      {shippingData.streetAddress}, {shippingData.city}, {shippingData.zipCode}
-                    </p>
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-[#ffef02] to-[#0046be] rounded-full flex items-center justify-center">
+                      <MapPin className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Shipping to:</h3>
+                      <p className="text-gray-600">
+                        {shippingData.streetAddress}, {shippingData.city}, {shippingData.state} {shippingData.zipCode}
+                      </p>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-gray-900">{product.title}</p>
-                    <p className="text-lg font-bold text-[#0046be]">${product.price.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-[#0046be]">${product.price.toFixed(2)}</p>
+                    <p className="text-sm text-gray-500">Free shipping included</p>
                   </div>
                 </div>
               </div>
 
-              {/* Payment Section - Full Width */}
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">Complete Your Purchase</h2>
+              {/* Payment Section */}
+              <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Purchase</h2>
+                  <p className="text-gray-600">Secure checkout powered by industry-leading encryption</p>
+                </div>
                 
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="border-2 border-gray-200 rounded-2xl overflow-hidden">
                   <iframe
                     src={product.checkoutLink}
                     className="w-full h-[700px] border-0"
@@ -264,10 +445,23 @@ const CheckoutPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-gray-500">
-                    🔒 Your payment is secured with industry-standard encryption
-                  </p>
+                <div className="mt-6 text-center">
+                  <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                    <span>SSL Encrypted</span>
+                    <span>•</span>
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                    <span>Secure Payment</span>
+                    <span>•</span>
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                    <span>Money Back Guarantee</span>
+                  </div>
                 </div>
               </div>
             </div>
