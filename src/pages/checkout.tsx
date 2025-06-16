@@ -150,67 +150,56 @@ const CheckoutPage: React.FC = () => {
             Back to Product
           </Link>
 
-          {/* Enhanced Progress Indicator */}
-          <div className="mb-12">
-            <div className="flex items-center justify-center max-w-md mx-auto">
+          {/* Compact Progress Indicator */}
+          <div className="mb-8">
+            <div className="flex items-center justify-center max-w-xs mx-auto">
               {/* Step 1 - Shipping */}
               <div className="flex flex-col items-center">
-                <div className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+                <div className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${
                   currentStep === 'shipping' 
-                    ? 'bg-[#0046be] text-white shadow-lg scale-110' 
+                    ? 'bg-[#0046be] text-white shadow-md' 
                     : currentStep === 'payment' 
-                    ? 'bg-[#ffef02] text-[#0046be] shadow-md' 
+                    ? 'bg-[#ffef02] text-[#0046be] shadow-sm' 
                     : 'bg-gray-300 text-gray-600'
                 }`}>
                   {currentStep === 'payment' ? (
-                    <Check className="h-6 w-6" />
+                    <Check className="h-4 w-4" />
                   ) : (
-                    <MapPin className="h-6 w-6" />
-                  )}
-                  {currentStep === 'shipping' && (
-                    <div className="absolute inset-0 rounded-full bg-[#0046be] animate-ping opacity-25"></div>
+                    <MapPin className="h-4 w-4" />
                   )}
                 </div>
-                <span className={`mt-3 text-sm font-medium transition-colors duration-300 ${
+                <span className={`mt-2 text-xs font-medium transition-colors duration-300 ${
                   currentStep === 'shipping' 
                     ? 'text-[#0046be]' 
                     : currentStep === 'payment' 
                     ? 'text-green-600' 
                     : 'text-gray-600'
                 }`}>
-                  Shipping Address
+                  Shipping
                 </span>
               </div>
               
               {/* Progress Line */}
-              <div className="flex-1 mx-6 relative">
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="flex-1 mx-4 relative">
+                <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
                   <div className={`h-full transition-all duration-1000 ease-out ${
                     currentStep === 'payment' 
-                      ? 'w-full bg-gradient-to-r from-[#ffef02] to-[#0046be]' 
+                      ? 'w-full bg-[#0046be]' 
                       : 'w-0 bg-[#0046be]'
                   }`}></div>
                 </div>
-                {currentStep === 'payment' && (
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="w-3 h-3 bg-white rounded-full border-2 border-[#0046be] animate-pulse"></div>
-                  </div>
-                )}
               </div>
               
               {/* Step 2 - Payment */}
               <div className="flex flex-col items-center">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 ${
                   currentStep === 'payment' 
-                    ? 'bg-[#0046be] text-white shadow-lg scale-110' 
+                    ? 'bg-[#0046be] text-white shadow-md' 
                     : 'bg-gray-300 text-gray-600'
                 }`}>
-                  <CreditCard className="h-6 w-6" />
-                  {currentStep === 'payment' && (
-                    <div className="absolute inset-0 rounded-full bg-[#0046be] animate-ping opacity-25"></div>
-                  )}
+                  <CreditCard className="h-4 w-4" />
                 </div>
-                <span className={`mt-3 text-sm font-medium transition-colors duration-300 ${
+                <span className={`mt-2 text-xs font-medium transition-colors duration-300 ${
                   currentStep === 'payment' ? 'text-[#0046be]' : 'text-gray-600'
                 }`}>
                   Payment
@@ -226,7 +215,7 @@ const CheckoutPage: React.FC = () => {
               <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Order Summary</h2>
                 
-                <div className="flex items-start space-x-6 p-6 bg-gradient-to-r from-blue-50 to-yellow-50 rounded-xl border border-blue-100">
+                <div className="flex items-start space-x-6 p-6 bg-blue-50 rounded-xl border border-blue-100">
                   <img 
                     src={product.images[0]} 
                     alt={product.title}
@@ -271,8 +260,8 @@ const CheckoutPage: React.FC = () => {
                 
                 {showAddressConfirmation ? (
                   <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-gradient-to-r from-[#ffef02] to-[#0046be] rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Check className="h-10 w-10 text-white" />
+                    <div className="w-20 h-20 bg-[#ffef02] rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Check className="h-10 w-10 text-[#0046be]" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-3">Address Confirmed!</h3>
                     <p className="text-gray-600">Proceeding to secure payment...</p>
@@ -397,7 +386,7 @@ const CheckoutPage: React.FC = () => {
 
                     <button
                       type="submit"
-                      className="w-full bg-gradient-to-r from-[#0046be] to-[#003494] hover:from-[#003494] hover:to-[#002a6b] text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                      className="w-full bg-[#0046be] hover:bg-[#003494] text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
                     >
                       Continue to Payment
                     </button>
@@ -406,63 +395,32 @@ const CheckoutPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            /* Payment Step - Streamlined Layout */
-            <div className="max-w-4xl mx-auto">
+            /* Payment Step - Full Height Layout */
+            <div className="max-w-6xl mx-auto">
               {/* Compact Shipping Summary */}
-              <div className="bg-white rounded-2xl shadow-sm p-6 mb-8 border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-[#ffef02] to-[#0046be] rounded-full flex items-center justify-center">
-                      <MapPin className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">Shipping to:</h3>
-                      <p className="text-gray-600">
-                        {shippingData.streetAddress}, {shippingData.city}, {shippingData.state} {shippingData.zipCode}
-                      </p>
-                    </div>
+              <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 border border-gray-100">
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 bg-[#ffef02] rounded-full flex items-center justify-center">
+                    <MapPin className="h-5 w-5 text-[#0046be]" />
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-[#0046be]">${product.price.toFixed(2)}</p>
-                    <p className="text-sm text-gray-500">Free shipping included</p>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Shipping to:</h3>
+                    <p className="text-gray-600 text-sm">
+                      {shippingData.streetAddress}, {shippingData.city}, {shippingData.state} {shippingData.zipCode}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Payment Section */}
-              <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
-                <div className="text-center mb-8">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Purchase</h2>
-                  <p className="text-gray-600">Secure checkout powered by industry-leading encryption</p>
-                </div>
-                
-                <div className="border-2 border-gray-200 rounded-2xl overflow-hidden">
-                  <iframe
-                    src={product.checkoutLink}
-                    className="w-full h-[700px] border-0"
-                    title="Secure Checkout"
-                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
-                  />
-                </div>
-
-                <div className="mt-6 text-center">
-                  <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
-                    <span>SSL Encrypted</span>
-                    <span>•</span>
-                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
-                    <span>Secure Payment</span>
-                    <span>•</span>
-                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
-                    <span>Money Back Guarantee</span>
-                  </div>
-                </div>
+              {/* Full Height Payment Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <iframe
+                  src={product.checkoutLink}
+                  className="w-full h-screen border-0"
+                  title="Secure Checkout"
+                  sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+                  style={{ minHeight: '100vh' }}
+                />
               </div>
             </div>
           )}
